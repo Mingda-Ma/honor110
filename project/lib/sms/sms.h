@@ -12,9 +12,12 @@ class SMSRec {
 private:
     Adafruit_FONA *fona;
     SoftwareSerial *fonaSS;
+    char fonaNotificationBuffer[64];
+    char smsBuffer[256];
 public:
     SMSRec();
     bool init();
+    bool getMsg();
 };
 
 #endif
