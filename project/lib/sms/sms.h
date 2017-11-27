@@ -4,6 +4,7 @@
 #include <Adafruit_FONA.h>
 #include <SoftwareSerial.h>
 #include <vector>
+#include "gps.h"
 
 #define FONA_RX  9
 #define FONA_TX  8
@@ -39,8 +40,10 @@ public:
     bool getMsg();
     bool addUser();
     bool deleteUser();
+    
     uint16_t getBatt();
-    void listen();
+    void listen(GPS *gps);
+    void getGPSLoc(char *response);
 };
 
 #endif

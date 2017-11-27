@@ -1,5 +1,6 @@
 #include "sms.h"
 #include "Adafruit_FONA.h"
+#include "gps.h"
 #include <vector>
 
 SMSRec::SMSRec() {
@@ -61,8 +62,6 @@ bool SMSRec::addUser() {
             delay(200);
             continue;
         }
-        Serial.print("Secret Received: ");
-        Serial.println(smsBuffer);
         if (strcmp(smsBuffer, SECRET) == 0) {
             char *new_id = new char[31];
             strcpy(new_id, callerIDbuffer);
@@ -98,7 +97,7 @@ bool SMSRec::deleteUser() {
     return false;
 }
 
-void SMSRec::listen() {
+void SMSRec::listen(GPS *gps) {
     if (getMsg()) {
         char cmd = smsBuffer[0];
         char response[100];
@@ -127,6 +126,17 @@ void SMSRec::listen() {
             if (checkID()) {
                 sprintf(response, "Battery Remaining: %u\%", getBatt());
                 fona->sendSMS(callerIDbuffer, response);
+            }
+            break;
+        case 'g':
+            char locstr[40];
+            char datestr[70];
+            if(gps->readLoc(locstr, datestr)){
+                fona->sendSMS(callerIDbuffer, datestr);
+                fona->sendSMS(callerIDbuffer, locstr);
+            }
+            else {
+                fona->sendSMS(callerIDbuffer, "GPS Not Yet Available");
             }
             break;
         default:
