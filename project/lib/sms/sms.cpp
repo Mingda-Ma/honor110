@@ -1,5 +1,6 @@
 #include "sms.h"
 #include "Adafruit_FONA.h"
+#include <vector>
 
 SMSRec::SMSRec() {
     fonaSS = new SoftwareSerial(FONA_TX, FONA_RX);
@@ -34,8 +35,6 @@ bool SMSRec::getMsg() {
         if (1 == sscanf(fonaNotificationBuffer, "+CMTI: \"SM\",%d", &slot)) {
             //Serial.print("slot: "); Serial.println(slot);
 
-            char callerIDbuffer[32];  //we'll store the SMS sender number in here
-
             // Retrieve SMS sender address/phone number.
             if (! fona->getSMSSender(slot, callerIDbuffer, 31)) {
                 return false;
@@ -53,4 +52,92 @@ bool SMSRec::getMsg() {
         }
     }
     return false;
+}
+
+bool SMSRec::addUser() {
+    unsigned long st = millis();
+    while (millis() - st <= 60000) {
+        if (!getMsg()) {
+            delay(200);
+            continue;
+        }
+        Serial.print("Secret Received: ");
+        Serial.println(smsBuffer);
+        if (strcmp(smsBuffer, SECRET) == 0) {
+            char *new_id = new char[31];
+            strcpy(new_id, callerIDbuffer);
+            known_id.push_back(new_id);
+            char response[80];
+            sprintf(response, "User %s added succesfully!", callerIDbuffer);
+            fona->sendSMS(callerIDbuffer, response);
+            return true;
+        }
+        else {
+            fona->sendSMS(callerIDbuffer, "Sercret not correct");
+            return false;
+        }
+    }
+    return false;
+}
+
+bool SMSRec::checkID() {
+    for (int i = 0; i < known_id.size(); i++)
+        if (strcmp(known_id[i], callerIDbuffer) == 0)
+            return true;
+    return false;
+}
+
+bool SMSRec::deleteUser() {
+    for (int i = 0; i < known_id.size(); i++) {
+        if (strcmp(known_id[i], callerIDbuffer) == 0) {
+            delete known_id[i];
+            known_id.erase(known_id.begin() + i);
+            return true;
+        }
+    }
+    return false;
+}
+
+void SMSRec::listen() {
+    if (getMsg()) {
+        char cmd = smsBuffer[0];
+        char response[100];
+        if (cmd >= 'A' && cmd <= 'Z')
+            cmd -= 'A' - 'a';
+        switch (cmd) {
+        case 'a':
+            if (checkID()) {
+                fona->sendSMS(callerIDbuffer, "User already exist");
+                break;
+            }
+            fona->sendSMS(callerIDbuffer, "Please enter your secret");
+            addUser();
+            break;
+        case 'c':
+            if (checkID())
+                fona->sendSMS(callerIDbuffer, "You are authorized user!");
+            else
+                fona->sendSMS(callerIDbuffer, "You are not authorized!");
+            break;
+        case 'd':
+            if (deleteUser())
+                fona->sendSMS(callerIDbuffer, "Succesfully removed!");
+            break;
+        case 'b':
+            if (checkID()) {
+                sprintf(response, "Battery Remaining: %u\%", getBatt());
+                fona->sendSMS(callerIDbuffer, response);
+            }
+            break;
+        default:
+            fona->sendSMS(callerIDbuffer, help_manual);
+            break;
+        }
+    }
+}
+
+uint16_t SMSRec::getBatt() {
+    uint16_t vbat;
+    fona->getBattPercent(&vbat);
+    return vbat;
 }

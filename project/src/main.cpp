@@ -17,6 +17,6 @@ void setup() {
 }
 
 void loop() {
-    smsrec->getMsg();
-    delay(10);
+    smsrec->listen();
+    delay(200);
 }
