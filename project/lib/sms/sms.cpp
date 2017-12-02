@@ -6,11 +6,12 @@
 SMSRec::SMSRec() {
     fonaSS = new SoftwareSerial(FONA_TX, FONA_RX);
     fona = new Adafruit_FONA(FONA_RST);
-    Serial.begin(9600);
+    //Serial.begin(9600);
 }
 
 bool SMSRec::init() {
     fonaSS->begin(4800);
+    fonaSS->listen();
     return fona->begin(*fonaSS);
 }
 
@@ -20,6 +21,7 @@ bool SMSRec::getMsg() {
 
     if (fona->available())      //any data available from the FONA?
     {
+        Serial.println("something available!");
         int slot = 0;            //this will be the slot number of the SMS
         unsigned int charCount = 0;
         //Read the notification into fonaInBuffer
@@ -113,6 +115,7 @@ void SMSRec::listen(GPS *gps) {
             addUser();
             break;
         case 'c':
+            Serial.println("command c received");
             if (checkID())
                 fona->sendSMS(callerIDbuffer, "You are authorized user!");
             else
@@ -129,9 +132,15 @@ void SMSRec::listen(GPS *gps) {
             }
             break;
         case 'g':
+            if (!checkID())
+                break;
+            Serial.println("command g received");
             char locstr[40];
             char datestr[70];
+            gps->smartDelay(500);
+            fonaSS->listen();
             if(gps->readLoc(locstr, datestr)){
+                Serial.println(locstr);
                 fona->sendSMS(callerIDbuffer, datestr);
                 fona->sendSMS(callerIDbuffer, locstr);
             }
@@ -150,4 +159,8 @@ uint16_t SMSRec::getBatt() {
     uint16_t vbat;
     fona->getBattPercent(&vbat);
     return vbat;
+}
+
+void SMSRec::enable() {
+    fonaSS->listen();
 }

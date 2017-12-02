@@ -3,15 +3,17 @@
 
 GPS::GPS() {
     gps = new TinyGPSPlus();
-    Serial.begin(GPS_BAUD);
+    gpsSS = new SoftwareSerial(RX_PIN, TX_PIN);
+    gpsSS->begin(GPS_BAUD);
     pinMode(GPS_LED, OUTPUT);
 }
 
 void GPS::smartDelay(unsigned long ms) {
+    gpsSS->listen();
     unsigned long st = millis();
     while (millis() - st < ms) {
-        while (Serial.available()) {
-            gps->encode(Serial.read());
+        while (gpsSS->available()) {
+            gps->encode(gpsSS->read());
         }
     }
 }
@@ -28,7 +30,9 @@ bool GPS::readLoc(char *locstr, char *datestr) {
         gps->time.minute(),
         gps->time.second(),
         gps->satellites.value());
-    sprintf(locstr, "%.6f, %.6f", gps->location.lat(), gps->location.lng());
+    sprintf(locstr, "%s, %s", String(gps->location.lat(),6).c_str(),
+                              String(gps->location.lng(),6).c_str());
+    Serial.println(gps->location.lat());
     return true;
 }
 

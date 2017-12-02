@@ -16,7 +16,7 @@ const char help_manual[] =
     "Commands Available:\n"
     "[a]: add phone number\n"
     "[b]: battery voltage\n"
-    "[c]: check authorization"
+    "[c]: check authorization\n"
     "[d]: delete this phone number\n"
     "[g]: get location\n"
     "[h]: help manual\n";
@@ -40,7 +40,8 @@ public:
     bool getMsg();
     bool addUser();
     bool deleteUser();
-    
+    void enable();
+
     uint16_t getBatt();
     void listen(GPS *gps);
     void getGPSLoc(char *response);
